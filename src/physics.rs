@@ -4,9 +4,9 @@ use crate::scene_data::SceneData;
 use crate::{CURSOR_FORCE, CURSOR_RADIUS, CursorState, Fp, WORLD_HEIGHT, WORLD_WIDTH};
 
 // const GRAVITY: Fp = -9.81;
-const GRAVITY: Fp = -9.81;
+const GRAVITY: Fp = -2.0;
 const COEF_OF_REST: Fp = 0.1;
-const DRAG_COEF: Fp = 10.0;
+const DRAG_COEF: Fp = 1.0;
 const FORCE_SCALE: Fp = 0.0002;
 
 pub fn physics_update<const C: usize>(scene_data: &mut SceneData<C>, delta_time: Fp, cursor_state: &CursorState) {
