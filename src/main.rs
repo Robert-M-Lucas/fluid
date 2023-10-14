@@ -1,4 +1,5 @@
 use cgmath::{Vector2, Zero};
+use gl::types::GLfloat;
 use rand::Rng;
 use sdl2::event::Event;
 use sdl2::gfx::framerate::FPSManager;
@@ -45,6 +46,12 @@ fn main() {
     let mut fps_manager = FPSManager::new();
     fps_manager.set_framerate(TARGET_FPS).unwrap();
 
+
+
+    unsafe {
+        gl::ClearColor(0.3, 0.3, 0.5, 1.0);
+    }
+
     let delta_time = 1.0 / TARGET_FPS as Fp;
 
     let mut prev_tick = sdl2_data.timer.performance_counter();
@@ -90,14 +97,20 @@ fn main() {
 
         physics_update(&mut scene_data, true_delta_time, &cursor_state);
 
-        sdl2_data.canvas.set_draw_color(Color::BLACK);
-        sdl2_data.canvas.clear();
+        // sdl2_data.canvas.set_draw_color(Color::BLACK);
+        // sdl2_data.canvas.clear();
 
         render_scene_data(&scene_data, &mut sdl2_data);
 
-        sdl2_data.canvas.present();
+        // sdl2_data.canvas.present();
 
-        fps_manager.delay();
+        // fps_manager.delay();
+
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+        }
+
+        sdl2_data.window.gl_swap_window();
 
         if frame % TARGET_FPS as u128 == 0 {
             println!("{} fps", 1.0 / true_delta_time);

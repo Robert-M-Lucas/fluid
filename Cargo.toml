@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 array-init = "2.1.0"
 cgmath = "0.18.0"
+gl = "0.14.0"
 rand = "0.8.5"
 sdl2 = { version = "0.35.2", default-features = true, features = ["gfx"] }
 

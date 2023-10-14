@@ -16,6 +16,6 @@ pub fn render_scene_data<const C: usize>(scene_data: &SceneData<C>, sdl2_data: &
 
         let colour = Color::RGB(red, 0, 255 - red);
 
-        sdl2_data.canvas.filled_circle(pos.0, pos.1, 8, colour).unwrap();
+        // sdl2_data.canvas.filled_circle(pos.0, pos.1, 8, colour).unwrap();
     }
 }
