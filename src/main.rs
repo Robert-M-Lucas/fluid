@@ -1,5 +1,5 @@
 use cgmath::{Vector2, Zero};
-use gl::types::GLfloat;
+use gl::types::{GLfloat, GLsizei};
 use rand::Rng;
 use sdl2::event::Event;
 use sdl2::gfx::framerate::FPSManager;
@@ -49,7 +49,8 @@ fn main() {
 
 
     unsafe {
-        gl::ClearColor(0.3, 0.3, 0.5, 1.0);
+        // gl::Viewport(0, 0, SCREEN_WIDTH as GLsizei, SCREEN_HEIGHT as GLsizei);
+        gl::ClearColor(0.3, 0.3, 0.5, 0.8);
     }
 
     let delta_time = 1.0 / TARGET_FPS as Fp;
