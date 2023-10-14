@@ -1,73 +1,108 @@
-use array_init::array_init;
 use cgmath::{Vector2, Zero};
 use rand::Rng;
 use sdl2::event::Event;
+use sdl2::gfx::framerate::FPSManager;
 use sdl2::keyboard::Keycode;
-use sdl2::rect::Rect;
-use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
+use sdl2::TimerSubsystem;
+use crate::math::screen_to_world;
+use crate::physics::physics_update;
+use crate::renderer::render_scene_data;
+use crate::scene_data::{SceneData, SpawningMethod};
+use crate::sdl2_interface::init_sdl2;
 
-type Fp = f32;
+mod math;
+mod particle;
+mod scene_data;
+mod renderer;
+mod sdl2_interface;
+mod physics;
 
-struct Particle {
-    pub pos: Vector2<Fp>,
-    pub vel: Vector2<Fp>
-}
+pub type Fp = f32;
 
-impl Particle {
-    pub fn new(pos: Vector2<Fp>) -> Self {
-        Particle { pos, vel: Vector2::zero() }
-    }
+pub const SCREEN_WIDTH: u32 = 500;
+pub const SCREEN_HEIGHT: u32 = 500;
 
-    pub fn apply_vel(&mut self, time_step: Fp) {
-        self.pos += self.vel * time_step;
-    }
-}
+pub const WORLD_HEIGHT: Fp = 1.0; // Screen height in metres
+pub const WORLD_WIDTH: Fp = (SCREEN_WIDTH as Fp / SCREEN_HEIGHT as Fp) * WORLD_HEIGHT;
 
-const WIDTH: u32 = 500;
-const HEIGHT: u32 = 500;
+pub const PARTICLE_COUNT: usize = 1000;
 
-fn world_to_screen(world_pos: Vector2<Fp>) -> (u32, u32) {
-    (
-        world_pos.x as u32 + (WIDTH / 2),
-        world_pos.y as u32 + (HEIGHT / 2),
-    )
+pub const TARGET_FPS: u32 = 200;
+
+pub const CURSOR_FORCE: Fp = 15.0;
+pub const CURSOR_RADIUS: Fp = 0.2;
+
+pub enum CursorState {
+    Push(Vector2<Fp>),
+    Pull(Vector2<Fp>),
+    None
 }
 
 fn main() {
-    let sdl_context = sdl2::init().expect("SDL2 failed to load");
-    let mut event_pump = sdl_context.event_pump().expect("Failed to get event pump");
+    let mut sdl2_data = init_sdl2();
+    let mut scene_data = SceneData::<PARTICLE_COUNT>::new(SpawningMethod::Random);
+    let mut fps_manager = FPSManager::new();
+    fps_manager.set_framerate(TARGET_FPS).unwrap();
 
-    let video = sdl_context.video().expect("Failed to get SDL video");
-    let window =
-        video.window("Fluid", 500, 500)
-            .position_centered()
-            .opengl()
-            .build().expect("Failed to create window");
-    let mut canvas = window.into_canvas().build().expect("Failed to convert window to canvas");
+    let delta_time = 1.0 / TARGET_FPS as Fp;
 
-    let mut rng = rand::thread_rng();
+    let mut prev_tick = sdl2_data.timer.performance_counter();
+    let tick_freq = sdl2_data.timer.performance_frequency();
 
-    let mut balls: [Particle; 20] =
-        array_init(|_|
-            Particle::new(
-                Vector2::new(rng.gen_range(-100..100) as Fp, rng.gen_range(-100..100) as Fp),
-            )
-        );
+    let mut frame: u128 = 0;
 
     'main_loop: loop {
-        for event in event_pump.poll_iter() {
+        for event in sdl2_data.event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::P), .. } => break 'main_loop,
                 _ => {}
             }
         }
 
-        for b in balls {
-            let pos = world_to_screen(b.pos);
-            canvas.aa_circle(pos.0 as i16, pos.1 as i16, 4, Color::RGB(255, 255, 255)).unwrap();
+        let cursor_state =
+            if sdl2_data.event_pump.mouse_state().left() {
+                CursorState::Push(
+                    screen_to_world(
+                        (
+                            sdl2_data.event_pump.mouse_state().x() as u32,
+                            sdl2_data.event_pump.mouse_state().y() as u32,
+                        )
+                    )
+                )
+            }
+            else if sdl2_data.event_pump.mouse_state().right() {
+                CursorState::Pull(
+                    screen_to_world(
+                        (
+                            sdl2_data.event_pump.mouse_state().x() as u32,
+                            sdl2_data.event_pump.mouse_state().y() as u32,
+                        )
+                    )
+                )
+            }
+            else { CursorState::None };
+
+        let tick = sdl2_data.timer.performance_counter();
+        let true_delta_time = (tick - prev_tick) as Fp / tick_freq as Fp;
+        prev_tick = tick;
+
+
+        physics_update(&mut scene_data, true_delta_time, &cursor_state);
+
+        sdl2_data.canvas.set_draw_color(Color::BLACK);
+        sdl2_data.canvas.clear();
+
+        render_scene_data(&scene_data, &mut sdl2_data);
+
+        sdl2_data.canvas.present();
+
+        fps_manager.delay();
+
+        if frame % TARGET_FPS as u128 == 0 {
+            println!("{} fps", 1.0 / true_delta_time);
         }
 
-        canvas.present();
+        frame += 1;
     }
 }
