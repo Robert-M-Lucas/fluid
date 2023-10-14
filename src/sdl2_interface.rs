@@ -5,7 +5,7 @@ use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
 pub struct SDL2Data {
     // pub canvas: WindowCanvas,
-    pub window: Window,
+    pub renderer: WindowCanvas,
     pub event_pump: EventPump,
     pub timer: TimerSubsystem
 }
@@ -48,7 +48,7 @@ pub fn init_sdl2() -> SDL2Data {
 
     SDL2Data {
         // canvas,
-        window: renderer.into_window(),
+        renderer,
         event_pump,
         timer: timer_subsystem
     }

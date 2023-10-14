@@ -111,7 +111,7 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
 
-        sdl2_data.window.gl_swap_window();
+        sdl2_data.renderer.window().gl_swap_window();
 
         if frame % TARGET_FPS as u128 == 0 {
             println!("{} fps", 1.0 / true_delta_time);
