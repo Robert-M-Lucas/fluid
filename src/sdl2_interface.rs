@@ -1,13 +1,13 @@
-use sdl2::{EventPump, TimerSubsystem};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use sdl2::render::WindowCanvas;
 use sdl2::video::Window;
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use sdl2::{EventPump, TimerSubsystem};
 
 pub struct SDL2Data {
     // pub canvas: WindowCanvas,
     pub renderer: WindowCanvas,
     pub event_pump: EventPump,
-    pub timer: TimerSubsystem
+    pub timer: TimerSubsystem,
 }
 
 fn find_sdl_gl_driver() -> Option<u32> {
@@ -29,27 +29,29 @@ pub fn init_sdl2() -> SDL2Data {
     gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
     gl_attr.set_context_version(4, 5);
 
-    let window =
-        video.window("Fluid", SCREEN_WIDTH, SCREEN_HEIGHT)
-            .opengl()
-            .position_centered()
-            .build().expect("Failed to create window");
+    let window = video
+        .window("Fluid", SCREEN_WIDTH, SCREEN_HEIGHT)
+        .opengl()
+        .position_centered()
+        .build()
+        .expect("Failed to create window");
     // let mut canvas = window.into_canvas().build().expect("Failed to convert window to canvas");
 
-    let renderer = window.into_canvas()
+    let renderer = window
+        .into_canvas()
         .index(find_sdl_gl_driver().unwrap())
         .present_vsync()
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     // let _gl_context = renderer.window().gl_create_context().unwrap();
     renderer.window().gl_set_context_to_current().unwrap();
     let _gl = gl::load_with(|s| video.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
-
     SDL2Data {
         // canvas,
         renderer,
         event_pump,
-        timer: timer_subsystem
+        timer: timer_subsystem,
     }
 }
