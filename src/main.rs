@@ -24,18 +24,18 @@ mod opengl_interface;
 
 pub type Fp = f32;
 
-pub const SCREEN_WIDTH: u32 = 500;
-pub const SCREEN_HEIGHT: u32 = 500;
+pub const SCREEN_WIDTH: u32 = 1920;
+pub const SCREEN_HEIGHT: u32 = 1080;
 
-pub const WORLD_HEIGHT: Fp = 1.0; // Screen height in metres
+pub const WORLD_HEIGHT: Fp = 0.5; // Screen height in metres
 pub const WORLD_WIDTH: Fp = (SCREEN_WIDTH as Fp / SCREEN_HEIGHT as Fp) * WORLD_HEIGHT;
 
 pub const PARTICLE_COUNT: usize = 1000;
 
 pub const TARGET_FPS: u32 = 200;
 
-pub const CURSOR_FORCE: Fp = 15.0;
-pub const CURSOR_RADIUS: Fp = 0.2;
+pub const CURSOR_FORCE: Fp = 3.0;
+pub const CURSOR_RADIUS: Fp = 0.3;
 
 pub const USE_TRUE_DELTA_TIME: bool = true;
 
@@ -109,7 +109,7 @@ fn main() {
         let mut vertices: Vec<f32> = Vec::with_capacity(6 * PARTICLE_COUNT);
 
         for particle in &scene_data.particles {
-            let pos = (particle.pos * 2.0) - Vector2::new(1.0, 1.0);
+            let pos = (particle.pos * 2.0);
 
             let mut vel = particle.vel.magnitude();
             if vel > 0.6 {
@@ -119,9 +119,9 @@ fn main() {
             let red = (vel * (1.0 / 0.6)).sqrt();
             // let red = red * red;
 
-            for offset in [(0.0, 0.025), (-0.0216, -0.0125), (0.0216, -0.0125)] {
-                vertices.push(pos.x + offset.0);
-                vertices.push(pos.y + offset.1);
+            for offset in [(0.0, 0.05), (-0.0433, -0.025), (0.0433, -0.025)] {
+                vertices.push(((pos.x + offset.0) / (WORLD_WIDTH / WORLD_HEIGHT)) - 1.0);
+                vertices.push(pos.y + offset.1 - 1.0);
                 vertices.push(0.0);
 
                 vertices.push(red);
@@ -192,7 +192,7 @@ fn main() {
 
         sdl2_data.renderer.window().gl_swap_window();
 
-        fps_manager.delay();
+        // fps_manager.delay();
 
         if frame % TARGET_FPS as u128 == 0 {
             println!("{} fps", 1.0 / true_delta_time);
