@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::math::screen_to_world;
 use crate::physics::physics_update;
 use crate::renderer::render_scene_data;
