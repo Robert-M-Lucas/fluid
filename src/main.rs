@@ -20,6 +20,7 @@ mod physics;
 mod renderer;
 mod scene_data;
 mod sdl2_interface;
+mod opengl_interface;
 
 pub type Fp = f32;
 
@@ -56,37 +57,36 @@ fn main() {
     let mut frame: u128 = 0;
 
     unsafe {
-        gl::ClearColor(0.0, 1.0, 0.0, 1.0);
+        gl::Viewport(0, 0, SCREEN_WIDTH as GLsizei, SCREEN_HEIGHT as GLsizei);
+        gl::ClearColor(0.0, 0.0, 0.0, 1.0);
     }
 
+    // Initialise vertices for triangle
     let vertices: Vec<f32> = vec![
-        -0.5, -0.5, 0.0,
-        0.5, -0.5, 0.0,
-        0.0, 0.5, 0.5
+        // positions      // colors
+        0.5, -0.5, 0.0,   1.0, 0.0, 0.0,   // bottom right
+        -0.5, -0.5, 0.0,  0.0, 1.0, 0.0,   // bottom left
+        0.0,  0.5, 0.0,   0.0, 0.0, 1.0    // top
     ];
+
 
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
-        gl::GenBuffers(1, &mut vbo);
-    }
-
-    unsafe {
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::GenBuffers(1, &mut vbo); // Request 1 buffer, put buffer name into vbo
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo); // Binds named buffer to target
         gl::BufferData(
-            gl::ARRAY_BUFFER, // target
-            (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr, // size of data in bytes
-            vertices.as_ptr() as *const gl::types::GLvoid, // pointer to data
-            gl::STATIC_DRAW, // usage
+            gl::ARRAY_BUFFER, // Target
+            (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr, // Size of data
+            vertices.as_ptr() as *const gl::types::GLvoid, // Pointer to data
+            gl::STATIC_DRAW, // Usage
         );
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0); // unbind the buffer
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind the buffer
     }
 
+    // Instructions for how to interpret vertices
     let mut vao: gl::types::GLuint = 0;
     unsafe {
-        gl::GenVertexArrays(1, &mut vao);
-    }
-
-    unsafe {
+        gl::GenVertexArrays(1, &mut vao); // Request 1 buffer, put name into vao
         gl::BindVertexArray(vao);
 
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
@@ -97,16 +97,24 @@ fn main() {
             3, // the number of components per generic vertex attribute
             gl::FLOAT, // data type
             gl::FALSE, // normalized (int-to-float conversion)
-            (3 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+            (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // Stride (byte offset between consecutive attributes) - here 3 * f32 for x, y, z
             std::ptr::null() // offset of the first component
         );
+        gl::EnableVertexAttribArray(1); // this is "layout (location = 1)" in vertex shader
+        gl::VertexAttribPointer(
+            1, // index of the generic vertex attribute ("layout (location = 1)")
+            3, // the number of components per generic vertex attribute
+            gl::FLOAT, // data type
+            gl::FALSE, // normalized (int-to-float conversion)
+            (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
+        );
 
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        gl::BindVertexArray(0);
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind buffer
+        gl::BindVertexArray(0); // Unbind vertex array
     }
-    unsafe {
-        gl::BindVertexArray(vao);
-    }
+
+    unsafe { gl::BindVertexArray(vao); }
 
     'main_loop: loop {
         for event in sdl2_data.event_pump.poll_iter() {
@@ -146,9 +154,11 @@ fn main() {
 
         // fps_manager.delay();
 
+
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
+
 
         unsafe {
             gl::DrawArrays(
