@@ -5,7 +5,7 @@ use crate::physics::physics_update;
 use crate::renderer::render_scene_data;
 use crate::scene_data::{SceneData, SpawningMethod};
 use crate::sdl2_interface::init_sdl2;
-use cgmath::{Vector2, Zero};
+use cgmath::{InnerSpace, Vector2, Zero};
 use gl::types::{GLfloat, GLsizei};
 use rand::Rng;
 use sdl2::event::Event;
@@ -37,6 +37,8 @@ pub const TARGET_FPS: u32 = 200;
 pub const CURSOR_FORCE: Fp = 15.0;
 pub const CURSOR_RADIUS: Fp = 0.2;
 
+pub const USE_TRUE_DELTA_TIME: bool = true;
+
 pub enum CursorState {
     Push(Vector2<Fp>),
     Pull(Vector2<Fp>),
@@ -60,61 +62,6 @@ fn main() {
         gl::Viewport(0, 0, SCREEN_WIDTH as GLsizei, SCREEN_HEIGHT as GLsizei);
         gl::ClearColor(0.0, 0.0, 0.0, 1.0);
     }
-
-    // Initialise vertices for triangle
-    let vertices: Vec<f32> = vec![
-        // positions      // colors
-        0.5, -0.5, 0.0,   1.0, 0.0, 0.0,   // bottom right
-        -0.5, -0.5, 0.0,  0.0, 1.0, 0.0,   // bottom left
-        0.0,  0.5, 0.0,   0.0, 0.0, 1.0    // top
-    ];
-
-
-    let mut vbo: gl::types::GLuint = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut vbo); // Request 1 buffer, put buffer name into vbo
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo); // Binds named buffer to target
-        gl::BufferData(
-            gl::ARRAY_BUFFER, // Target
-            (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr, // Size of data
-            vertices.as_ptr() as *const gl::types::GLvoid, // Pointer to data
-            gl::STATIC_DRAW, // Usage
-        );
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind the buffer
-    }
-
-    // Instructions for how to interpret vertices
-    let mut vao: gl::types::GLuint = 0;
-    unsafe {
-        gl::GenVertexArrays(1, &mut vao); // Request 1 buffer, put name into vao
-        gl::BindVertexArray(vao);
-
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-
-        gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
-        gl::VertexAttribPointer(
-            0, // index of the generic vertex attribute ("layout (location = 0)")
-            3, // the number of components per generic vertex attribute
-            gl::FLOAT, // data type
-            gl::FALSE, // normalized (int-to-float conversion)
-            (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // Stride (byte offset between consecutive attributes) - here 3 * f32 for x, y, z
-            std::ptr::null() // offset of the first component
-        );
-        gl::EnableVertexAttribArray(1); // this is "layout (location = 1)" in vertex shader
-        gl::VertexAttribPointer(
-            1, // index of the generic vertex attribute ("layout (location = 1)")
-            3, // the number of components per generic vertex attribute
-            gl::FLOAT, // data type
-            gl::FALSE, // normalized (int-to-float conversion)
-            (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
-        );
-
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind buffer
-        gl::BindVertexArray(0); // Unbind vertex array
-    }
-
-    unsafe { gl::BindVertexArray(vao); }
 
     'main_loop: loop {
         for event in sdl2_data.event_pump.poll_iter() {
@@ -146,14 +93,89 @@ fn main() {
         let true_delta_time = (tick - prev_tick) as Fp / tick_freq as Fp;
         prev_tick = tick;
 
-        // physics_update(&mut scene_data, true_delta_time, &cursor_state);
+        if USE_TRUE_DELTA_TIME {
+            physics_update(&mut scene_data, true_delta_time, &cursor_state);
+        }
+        else {
+            physics_update(&mut scene_data, true_delta_time, &cursor_state);
+        }
 
         // render_scene_data(&scene_data, &mut sdl2_data);
 
         // sdl2_data.canvas.present();
 
-        // fps_manager.delay();
 
+        // Initialise vertices for triangle
+        let mut vertices: Vec<f32> = Vec::with_capacity(6 * PARTICLE_COUNT);
+
+        for particle in &scene_data.particles {
+            let pos = (particle.pos * 2.0) - Vector2::new(1.0, 1.0);
+
+            let mut vel = particle.vel.magnitude();
+            if vel > 0.6 {
+                vel = 0.6
+            }
+
+            let red = (vel * (1.0 / 0.6)).sqrt();
+            // let red = red * red;
+
+            for offset in [(0.0, 0.025), (-0.0216, -0.0125), (0.0216, -0.0125)] {
+                vertices.push(pos.x + offset.0);
+                vertices.push(pos.y + offset.1);
+                vertices.push(0.0);
+
+                vertices.push(red);
+                vertices.push(0.0);
+                vertices.push(1.0 - red);
+            }
+        }
+
+
+        let mut vbo: gl::types::GLuint = 0;
+        unsafe {
+            gl::GenBuffers(1, &mut vbo); // Request 1 buffer, put buffer name into vbo
+            gl::BindBuffer(gl::ARRAY_BUFFER, vbo); // Binds named buffer to target
+            gl::BufferData(
+                gl::ARRAY_BUFFER, // Target
+                (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr, // Size of data
+                vertices.as_ptr() as *const gl::types::GLvoid, // Pointer to data
+                gl::STATIC_DRAW, // Usage
+            );
+            gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind the buffer
+        }
+
+        // Instructions for how to interpret vertices
+        let mut vao: gl::types::GLuint = 0;
+        unsafe {
+            gl::GenVertexArrays(1, &mut vao); // Request 1 buffer, put name into vao
+            gl::BindVertexArray(vao);
+
+            gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+
+            gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
+            gl::VertexAttribPointer(
+                0, // index of the generic vertex attribute ("layout (location = 0)")
+                3, // the number of components per generic vertex attribute
+                gl::FLOAT, // data type
+                gl::FALSE, // normalized (int-to-float conversion)
+                (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // Stride (byte offset between consecutive attributes) - here 3 * f32 for x, y, z
+                std::ptr::null() // offset of the first component
+            );
+            gl::EnableVertexAttribArray(1); // this is "layout (location = 1)" in vertex shader
+            gl::VertexAttribPointer(
+                1, // index of the generic vertex attribute ("layout (location = 1)")
+                3, // the number of components per generic vertex attribute
+                gl::FLOAT, // data type
+                gl::FALSE, // normalized (int-to-float conversion)
+                (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+                (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
+            );
+
+            gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind buffer
+            gl::BindVertexArray(0); // Unbind vertex array
+        }
+
+        unsafe { gl::BindVertexArray(vao); }
 
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
@@ -164,11 +186,13 @@ fn main() {
             gl::DrawArrays(
                 gl::TRIANGLES, // mode
                 0, // starting index in the enabled arrays
-                3 // number of indices to be rendered
+                (vertices.len() / 2) as i32 // number of indices to be rendered
             );
         }
 
         sdl2_data.renderer.window().gl_swap_window();
+
+        fps_manager.delay();
 
         if frame % TARGET_FPS as u128 == 0 {
             println!("{} fps", 1.0 / true_delta_time);

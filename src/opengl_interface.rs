@@ -12,7 +12,6 @@ pub fn init_opengl(window: Window, video: &VideoSubsystem) -> (WindowCanvas, Sha
     let renderer = window
         .into_canvas()
         .index(find_sdl_gl_driver().unwrap())
-        .present_vsync()
         .build()
         .unwrap();
 

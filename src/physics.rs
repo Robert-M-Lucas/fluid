@@ -4,10 +4,11 @@ use cgmath::{InnerSpace, Vector2, Zero};
 use rand::Rng;
 
 // const GRAVITY: Fp = -9.81;
-const GRAVITY: Fp = -2.0;
+const GRAVITY: Fp = 0.0;
 const COEF_OF_REST: Fp = 0.1;
 const DRAG_COEF: Fp = 1.0;
-const FORCE_SCALE: Fp = 0.0002;
+const PARTICLE_FORCE_SCALE: Fp = 0.0002;
+const WALL_FORCE_SCALE: Fp = 0.005;
 
 pub fn physics_update<const C: usize>(
     scene_data: &mut SceneData<C>,
@@ -38,7 +39,9 @@ pub fn physics_update<const C: usize>(
         CursorState::None => {}
     }
 
-    apply_repulsive_force(scene_data);
+    apply_repulsive_particle_force(scene_data);
+
+    apply_repulsive_wall_force(scene_data);
 
     scene_data
         .particles
@@ -52,7 +55,7 @@ pub fn physics_update<const C: usize>(
     bound_particles(scene_data, delta_time);
 }
 
-pub fn get_force(pos1: Vector2<Fp>, pos2: Vector2<Fp>) -> Vector2<Fp> {
+pub fn get_force(pos1: Vector2<Fp>, pos2: Vector2<Fp>, force_scale: Fp) -> Vector2<Fp> {
     let mut displacement = pos2 - pos1; // 1 to 2
     if displacement == Vector2::<Fp>::zero() {
         displacement = Vector2::new(0.01, 0.01);
@@ -63,20 +66,33 @@ pub fn get_force(pos1: Vector2<Fp>, pos2: Vector2<Fp>) -> Vector2<Fp> {
         distance = 0.01;
     }
     let direction = displacement.normalize();
-    let force = (1.0 / (distance * distance)) * FORCE_SCALE;
+    let force = (1.0 / (distance * distance)) * force_scale;
     -direction * force
 }
 
-pub fn apply_repulsive_force<const C: usize>(scene_data: &mut SceneData<C>) {
+pub fn apply_repulsive_particle_force<const C: usize>(scene_data: &mut SceneData<C>) {
     for i in 0..C {
         for j in 0..C {
             if i == j {
                 continue;
             }
-            let force = get_force(scene_data.particles[i].pos, scene_data.particles[j].pos);
+            let force = get_force(scene_data.particles[i].pos, scene_data.particles[j].pos, PARTICLE_FORCE_SCALE);
             scene_data.particles[i].accel += force / scene_data.particles[i].mass;
             scene_data.particles[j].accel += -force / scene_data.particles[j].mass;
         }
+    }
+}
+
+pub fn apply_repulsive_wall_force<const C: usize>(scene_data: &mut SceneData<C>) {
+    for particle in &mut scene_data.particles {
+        let pos = particle.pos;
+
+        let mut total_force = Vector2::zero();
+        total_force += get_force(pos, Vector2::new(-0.01, pos.y), WALL_FORCE_SCALE);
+        total_force += get_force(pos, Vector2::new(WORLD_WIDTH + 0.01, pos.y), WALL_FORCE_SCALE);
+        total_force += get_force(pos, Vector2::new(pos.x, -0.01), WALL_FORCE_SCALE);
+        total_force += get_force(pos, Vector2::new(pos.x, WORLD_HEIGHT + 0.01), WALL_FORCE_SCALE);
+        particle.accel += total_force / particle.mass;
     }
 }
 
