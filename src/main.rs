@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::math::screen_to_world;
+use crate::math::{generate_triangle, screen_to_world, world_to_open_gl};
 use crate::physics::physics_update;
 use crate::renderer::render_scene_data;
 use crate::scene_data::{SceneData, SpawningMethod};
@@ -24,10 +24,10 @@ mod opengl_interface;
 
 pub type Fp = f32;
 
-pub const SCREEN_WIDTH: u32 = 1920;
-pub const SCREEN_HEIGHT: u32 = 1080;
+pub const SCREEN_WIDTH: u32 = 1000;
+pub const SCREEN_HEIGHT: u32 = 1000;
 
-pub const WORLD_HEIGHT: Fp = 0.5; // Screen height in metres
+pub const WORLD_HEIGHT: Fp = 1.0; // Screen height in metres
 pub const WORLD_WIDTH: Fp = (SCREEN_WIDTH as Fp / SCREEN_HEIGHT as Fp) * WORLD_HEIGHT;
 
 pub const PARTICLE_COUNT: usize = 1000;
@@ -109,8 +109,6 @@ fn main() {
         let mut vertices: Vec<f32> = Vec::with_capacity(6 * PARTICLE_COUNT);
 
         for particle in &scene_data.particles {
-            let pos = (particle.pos * 2.0);
-
             let mut vel = particle.vel.magnitude();
             if vel > 0.6 {
                 vel = 0.6
@@ -119,9 +117,17 @@ fn main() {
             let red = (vel * (1.0 / 0.6)).sqrt();
             // let red = red * red;
 
-            for offset in [(0.0, 0.05), (-0.0433, -0.025), (0.0433, -0.025)] {
-                vertices.push(((pos.x + offset.0) / (WORLD_WIDTH / WORLD_HEIGHT)) - 1.0);
-                vertices.push(pos.y + offset.1 - 1.0);
+            let mut first = true;
+            for mut offset in generate_triangle(particle.vel.normalize() / 50.0) {
+                if first {
+                    first = false;
+                }
+                else {
+                    offset = offset * 0.6;
+                }
+                let pos = world_to_open_gl(Vector2::new( particle.pos.x + offset.x, particle.pos.y + offset.y));
+                vertices.push(pos.x);
+                vertices.push(pos.y);
                 vertices.push(0.0);
 
                 vertices.push(red);
