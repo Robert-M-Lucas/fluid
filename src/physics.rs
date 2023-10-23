@@ -4,10 +4,12 @@ use cgmath::{InnerSpace, Vector2, Zero};
 use rand::Rng;
 
 // const GRAVITY: Fp = -9.81;
-const GRAVITY: Fp = 0.0;
+const GRAVITY: Fp = -9.81;
 const COEF_OF_REST: Fp = 0.1;
 const DRAG_COEF: Fp = 1.0;
-const PARTICLE_FORCE_SCALE: Fp = 0.0001;
+const PARTICLE_FORCE_SCALE: Fp = 0.0002;
+const PARTICLE_FORCE_DIST_SCALE: Fp = 1.0;
+const STRONG_PARTICLE_FORCE_SCALE: Fp = 0.0001;
 const WALL_FORCE_SCALE: Fp = 0.0025;
 
 pub fn physics_update<const C: usize>(

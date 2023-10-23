@@ -27,17 +27,17 @@ pub type Fp = f32;
 pub const SCREEN_WIDTH: u32 = 1000;
 pub const SCREEN_HEIGHT: u32 = 1000;
 
-pub const WORLD_HEIGHT: Fp = 1.0; // Screen height in metres
+pub const WORLD_HEIGHT: Fp = 0.5; // Screen height in metres
 pub const WORLD_WIDTH: Fp = (SCREEN_WIDTH as Fp / SCREEN_HEIGHT as Fp) * WORLD_HEIGHT;
 
 pub const PARTICLE_COUNT: usize = 1000;
 
-pub const TARGET_FPS: u32 = 200;
+pub const TARGET_FPS: u32 = 10;
 
 pub const CURSOR_FORCE: Fp = 3.0;
 pub const CURSOR_RADIUS: Fp = 0.3;
 
-pub const USE_TRUE_DELTA_TIME: bool = true;
+pub const USE_TRUE_DELTA_TIME: bool = false;
 
 pub enum CursorState {
     Push(Vector2<Fp>),
@@ -52,6 +52,7 @@ fn main() {
     fps_manager.set_framerate(TARGET_FPS).unwrap();
 
     let delta_time = 1.0 / TARGET_FPS as Fp;
+    let delta_time = 1.0 / 100.0;
 
     let mut prev_tick = sdl2_data.timer.performance_counter();
     let tick_freq = sdl2_data.timer.performance_frequency();
@@ -97,7 +98,7 @@ fn main() {
             physics_update(&mut scene_data, true_delta_time, &cursor_state);
         }
         else {
-            physics_update(&mut scene_data, true_delta_time, &cursor_state);
+            physics_update(&mut scene_data, delta_time, &cursor_state);
         }
 
         // render_scene_data(&scene_data, &mut sdl2_data);
@@ -117,8 +118,18 @@ fn main() {
             let red = (vel * (1.0 / 0.6)).sqrt();
             // let red = red * red;
 
+            let vel = vel.clamp(0.0, 0.5);
             let mut first = true;
-            for mut offset in generate_triangle(particle.vel.normalize() / 50.0) {
+            let triangles = if vel > 0.2 {
+                let vel = ((vel - 0.2) / 2.0) + 0.2;
+                generate_triangle((particle.vel.normalize() * vel) / 25.0)
+            }
+            else {
+                first = false;
+                generate_triangle((particle.vel.normalize() * 0.2) / 25.0)
+            };
+
+            for mut offset in triangles {
                 if first {
                     first = false;
                 }
@@ -198,7 +209,7 @@ fn main() {
 
         sdl2_data.renderer.window().gl_swap_window();
 
-        // fps_manager.delay();
+        fps_manager.delay();
 
         if frame % TARGET_FPS as u128 == 0 {
             println!("{} fps", 1.0 / true_delta_time);
