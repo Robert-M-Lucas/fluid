@@ -6,11 +6,11 @@ use rand::Rng;
 // const GRAVITY: Fp = -9.81;
 const GRAVITY: Fp = -9.81;
 const COEF_OF_REST: Fp = 0.1;
-const DRAG_COEF: Fp = 1.0;
-const PARTICLE_FORCE_SCALE: Fp = 0.0002;
+const DRAG_COEF: Fp = 2.0;
+const PARTICLE_FORCE_SCALE: Fp = 0.0001;
 const PARTICLE_FORCE_DIST_SCALE: Fp = 1.0;
-const STRONG_PARTICLE_FORCE_SCALE: Fp = 0.0001;
-const WALL_FORCE_SCALE: Fp = 0.0025;
+// const STRONG_PARTICLE_FORCE_SCALE: Fp = 0.0001;
+const WALL_FORCE_SCALE: Fp = 0.005;
 
 pub fn physics_update<const C: usize>(
     scene_data: &mut SceneData<C>,
@@ -78,6 +78,15 @@ pub fn apply_repulsive_particle_force<const C: usize>(scene_data: &mut SceneData
             if i == j {
                 continue;
             }
+
+            const MAX_DIST: Fp = 0.1;
+            //
+            // let x_dist = (scene_data.particles[i].pos.x - scene_data.particles[j].pos.x);
+            // let y_dist = (scene_data.particles[i].pos.y - scene_data.particles[j].pos.y);
+            // if x_dist > MAX_DIST || x_dist < -MAX_DIST || y_dist > MAX_DIST || y_dist < -MAX_DIST { continue; }
+
+            if (scene_data.particles[i].pos - scene_data.particles[j].pos).magnitude() > MAX_DIST { continue; }
+
             let force = get_force(scene_data.particles[i].pos, scene_data.particles[j].pos, PARTICLE_FORCE_SCALE);
             scene_data.particles[i].accel += force / scene_data.particles[i].mass;
             scene_data.particles[j].accel += -force / scene_data.particles[j].mass;

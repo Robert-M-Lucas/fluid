@@ -27,17 +27,18 @@ pub type Fp = f32;
 pub const SCREEN_WIDTH: u32 = 1000;
 pub const SCREEN_HEIGHT: u32 = 1000;
 
-pub const WORLD_HEIGHT: Fp = 0.5; // Screen height in metres
+pub const WORLD_HEIGHT: Fp = 1.0; // Screen height in metres
 pub const WORLD_WIDTH: Fp = (SCREEN_WIDTH as Fp / SCREEN_HEIGHT as Fp) * WORLD_HEIGHT;
 
-pub const PARTICLE_COUNT: usize = 1000;
+pub const PARTICLE_COUNT: usize = 2000;
 
-pub const TARGET_FPS: u32 = 10;
+pub const TARGET_FPS: u32 = 200;
 
-pub const CURSOR_FORCE: Fp = 3.0;
+pub const CURSOR_FORCE: Fp = 12.0;
 pub const CURSOR_RADIUS: Fp = 0.3;
 
-pub const USE_TRUE_DELTA_TIME: bool = false;
+pub const USE_TRUE_DELTA_TIME: bool = true;
+pub const USE_SDL2_DELAY: bool = false;
 
 pub enum CursorState {
     Push(Vector2<Fp>),
@@ -209,7 +210,9 @@ fn main() {
 
         sdl2_data.renderer.window().gl_swap_window();
 
-        fps_manager.delay();
+        if USE_SDL2_DELAY {
+            fps_manager.delay();
+        }
 
         if frame % TARGET_FPS as u128 == 0 {
             println!("{} fps", 1.0 / true_delta_time);
